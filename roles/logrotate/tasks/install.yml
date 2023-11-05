@@ -1,0 +1,16 @@
+---
+- name: install | Update packages via system package manager
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: true
+    # upgrade: safe
+
+- name: install | Install the 'logrotate' package via system package manager
+  ansible.builtin.apt:
+    name: "{{ __pkg__ }}"
+    state: present
+    install_recommends: true
+  loop: "{{ __logrotate_packages }}"
+  loop_control:
+    loop_var: __pkg__

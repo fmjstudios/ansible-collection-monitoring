@@ -1,0 +1,12 @@
+---
+__logrotate_packages:
+  - logrotate
+
+__logrotate_system_dir: "/etc"
+__logrotate_system_path: "{{ __logrotate_system_dir }}/logrotate.conf"
+
+__logrotate_apps_path: "{{ __logrotate_system_dir }}/logrotate.d"
+
+__logrotate_template_name: "logrotate.conf.j2"
+
+__logrotate_systemd_service_name: logrotate

@@ -1,0 +1,84 @@
+---
+- name: install | Create Promtail system group and users
+  block:
+    - name: Create Promtail system group
+      ansible.builtin.group:
+        name: "{{ promtail_system_group }}"
+        state: present
+        system: true
+
+    - name: install | Create Promtail system user
+      ansible.builtin.user:
+        name: "{{ promtail_system_user }}"
+        group: "{{ promtail_system_group }}"
+        append: true
+        shell: /usr/sbin/nologin
+        system: true
+        create_home: false
+      when: promtail_system_user != "root"
+
+- name: install | Ensure '/usr/local/bin' exists with correct permissions
+  ansible.builtin.file:
+    path: /usr/local/bin
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: install | Create Promtail configuration directories
+  ansible.builtin.file:
+    path: "{{ __path__ }}"
+    state: directory
+    owner: root
+    group: "{{ promtail_system_group }}"
+    mode: 0770
+  loop:
+    - "{{ promtail_config_path }}"
+    - "{{ promtail_positions_path }}"
+  loop_control:
+    loop_var: __path__
+
+- name: install | Create Promtail installation directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ promtail_system_user }}"
+    group: "{{ promtail_system_group }}"
+    mode: 0755
+  with_items:
+    - "{{ promtail_install_dir }}"
+    - "{{ promtail_install_dir }}/{{ promtail_version }}"
+    - "{{ promtail_install_tmp_dir }}"
+
+- name: install | Check for an existing Promtail binary
+  ansible.builtin.stat:
+    path: "{{ promtail_install_dir }}/{{ promtail_version }}/promtail-linux-{{ _go_arch }}"
+  register: promtail_binary
+
+- name: install | Download Promtail release archive from GitHub releases page
+  ansible.builtin.get_url:
+    url: "{{ promtail_dist_url }}"
+    dest: "{{ promtail_install_tmp_dir }}/{{ promtail_version }}_promtail-linux-{{ go_arch }}.zip"
+    force: true
+    checksum: "{{ promtail_custom_checksum if promtail_custom_checksum else 'sha256:' + __promtail_checksum }}"
+  when:
+    - not promtail_binary.stat.exists
+
+- name: install | Unpack Promtail release binary into "{{ promtail_install_dir }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+  ansible.builtin.unarchive:
+    src: "{{ promtail_install_tmp_dir }}/{{ promtail_version }}_promtail-linux-{{ go_arch }}.zip"
+    dest: "{{ promtail_install_dir }}/{{ promtail_version }}"
+    creates: "{{ promtail_install_dir }}/{{ promtail_version }}/promtail-linux-{{ go_arch }}"
+    mode: 0755
+    remote_src: true
+
+- name: install | Create symlink to latest version
+  ansible.builtin.file:
+    state: link
+    src: "{{ promtail_install_dir }}/{{ promtail_version }}/promtail-linux-{{ go_arch }}"
+    dest: /usr/local/bin/promtail
+    mode: 0755
+  ignore_errors: "{{ ansible_check_mode }}"
+  notify:
+    - restart promtail

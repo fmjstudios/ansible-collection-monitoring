@@ -1,0 +1,44 @@
+---
+- name: Preflight
+  ansible.builtin.include_tasks:
+    file: preflight.yml
+    apply:
+      tags:
+        - logrotate_install
+        - logrotate_configure
+        - logrotate_run
+  tags:
+    - logrotate_install
+    - logrotate_configure
+    - logrotate_run
+
+- name: Install
+  ansible.builtin.include_tasks:
+    file: install.yml
+    apply:
+      become: true
+      tags:
+        - logrotate_install
+  tags:
+    - logrotate_install
+
+- name: Configure
+  ansible.builtin.include_tasks:
+    file: configure.yml
+    apply:
+      become: true
+      tags:
+        - logrotate_configure
+  tags:
+    - logrotate_configure
+
+- name: Ensure logrotate service is started and enabled
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: "{{ __logrotate_systemd_service_name }}"
+    state: started
+    enabled: true
+
+- name: Flush handlers after run.
+  ansible.builtin.meta: flush_handlers

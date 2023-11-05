@@ -1,0 +1,9 @@
+---
+- name: Restart logrotate systemd service
+  listen: "restart logrotate"
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: "{{ __logrotate_systemd_service_name }}"
+    state: restarted
+  when:
+    - not ansible_check_mode

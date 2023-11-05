@@ -1,0 +1,9 @@
+---
+- name: Restart Promtail systemd service
+  listen: "restart promtail"
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: "{{ promtail_systemd_service }}"
+    state: restarted
+  when:
+    - not ansible_check_mode

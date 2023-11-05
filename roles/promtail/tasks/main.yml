@@ -1,0 +1,44 @@
+---
+- name: Preflight
+  ansible.builtin.include_tasks:
+    file: preflight.yml
+    apply:
+      tags:
+        - promtail_install
+        - promtail_configure
+        - promtail_run
+  tags:
+    - promtail_install
+    - promtail_configure
+    - promtail_run
+
+- name: Install
+  ansible.builtin.include_tasks:
+    file: install.yml
+    apply:
+      become: true
+      tags:
+        - promtail_install
+  tags:
+    - promtail_install
+
+- name: Configure
+  ansible.builtin.include_tasks:
+    file: configure.yml
+    apply:
+      become: true
+      tags:
+        - promtail_configure
+  tags:
+    - promtail_configure
+
+- name: Ensure Promtail service is started and enabled
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: "{{ promtail_systemd_service }}"
+    state: started
+    enabled: true
+
+- name: Flush handlers after run.
+  ansible.builtin.meta: flush_handlers

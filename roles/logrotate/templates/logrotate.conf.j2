@@ -1,0 +1,34 @@
+{% if logrotate_configure_system %}
+
+{% for block in logrotate_config_system  %}
+  {{ block.pattern }} {
+    {% if block.rotate_files is defined %}
+    rotate {{ block.rotate_files }}
+    {% endif %}
+    {% if block.frequency is defined %}
+    {{ block.frequency }}
+    {% endif %}
+    {% if block.missingok %}
+    missingok
+    {% endif %}
+    {% if block.compress %}
+    compress
+    {% endif %}
+    {% if block.notifyempty %}
+    notifyempty
+    {% endif %}
+    {% if block.create.mode is defined %}
+    create {{ block.create.mode }} {{ block.create.user }} {{ block.create.group }}
+    {% endif %}
+    {% if block.sharedscripts %}
+    sharedscripts
+    {% endif %}
+    {% if block.postrotate is defined %}
+    postrotate
+      {{ block.postrotate }}
+    endscript
+    {% endif %}
+  }
+{% endfor %}
+
+{% endif %}

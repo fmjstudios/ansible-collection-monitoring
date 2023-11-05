@@ -1,0 +1,19 @@
+---
+- name: Configure logrotate system-wide
+  ansible.builtin.template:
+    src: "{{ __logrotate_template_name }}"
+    dest: "{{ __logrotate_system_path }}"
+    mode: 0644
+
+- name: Configure logrotate's app-specific settings
+  ansible.builtin.template:
+    src: "{{ __logrotate_template_name }}"
+    dest: "{{ __logrotate_apps_path }}/__app__"
+    mode: 0644
+  loop: "{{ logrotate_config_apps }}"
+  loop_control:
+    loop_var: __app__
+  when:
+    - logrotate_config_apps is defined
+  notify:
+    - restart logrotate

@@ -1,0 +1,153 @@
+---
+- name: preflight | Assert usage of systemd as an init system
+  ansible.builtin.assert:
+    that: ansible_service_mgr == 'systemd'
+    msg: "This role only works with systemd"
+
+- name: preflight | Install package fact dependencies
+  become: true
+  ansible.builtin.package:
+    name: "{{ _pkg_fact_req }}"
+    state: present
+  when: (_pkg_fact_req)
+  vars:
+    _pkg_fact_req: "{% if (ansible_pkg_mgr == 'apt') %}\
+      {{ ('python-apt' if ansible_python_version is version('3', '<') else 'python3-apt') }}
+      {% else %}\
+      {% endif %}"
+
+- name: preflight | Test if 'logrotate_configure_..' keys are set to booleans
+  ansible.builtin.assert:
+    that:
+      - __scope__ is defined
+      - __scope__ == __scope__ | bool
+    fail_msg: "'logrotate_configure_..' keys are either not defined or not booleans"
+    success_msg: "'logrotate_configure_..' keys are defined with boolean values"
+  loop:
+    - "{{ logrotate_configure_apps }}"
+    - "{{ logrotate_configure_system }}"
+  loop_control:
+    loop_var: __scope__
+
+- name: preflight | Test if the system configuration is set correctly
+  ansible.builtin.assert:
+    that:
+      - __block__.pattern is defined
+      - __block__.pattern is string
+      - __block__.rotate_files is defined
+      - __block__.rotate_files is number
+      - __block__.rotate_files > 0
+      - __block__.frequency is defined
+      - __block__.frequency is string
+      - __block__.missingok is defined
+      - __block__.missingok == __block__.missingok | bool
+      - __block__.compress is defined
+      - __block__.compress == __block__.compress | bool
+      - __block__.notifyempty is defined
+      - __block__.notifyempty == __block__.notifyempty | bool
+      - __block__.sharedscripts is defined
+      - __block__.sharedscripts == __block__.sharedscripts | bool
+      - __block__.create.mode is defined
+      - __block__.create.mode is number
+      - __block__.create.user is defined
+      - __block__.create.user is string
+      - __block__.create.group is defined
+      - __block__.create.group is string
+      - __block__.postrotate is defined
+      - __block__.postrotate is string
+  loop: "{{ logrotate_config_system.blocks }}"
+  loop_control:
+    loop_var: __block__
+  when:
+    - logrotate_config_system.blocks is defined
+    - logrotate_configure_system
+
+- name: preflight | Test if 'app_name' key is set to a string
+  ansible.builtin.assert:
+    that:
+      - __apps__.app_name is defined
+      - __apps__.app_name is string
+    fail_msg: "'__apps__.app_name' key is not set to a string"
+    success_msg: "'__apps__.app_name' key is not set to a string"
+  loop: "{{ logrotate_config_apps }}"
+  loop_control:
+    loop_var: __apps__
+
+# - name: preflight | Test if the app configuration is set correctly
+#   ansible.builtin.assert:
+#     that:
+#       - item.1.pattern is defined
+#       - item.1.pattern is string
+#       - item.1.rotate_files is defined
+#       - item.1.rotate_files is number
+#       - item.1.rotate_files > 0
+#       - item.1.frequency is defined
+#       - item.1.frequency is string
+#       - item.1.missingok is defined
+#       - item.1.missingok == item.1.missingok | bool
+#       - item.1.compress is defined
+#       - item.1.compress == item.1.compress | bool
+#       - item.1.notifyempty is defined
+#       - item.1.notifyempty == item.1.notifyempty | bool
+#       - item.1.sharedscripts is defined
+#       - item.1.sharedscripts == item.1.sharedscripts | bool
+#       - item.1.create.mode is defined
+#       - item.1.create.mode is number
+#       - item.1.create.user is defined
+#       - item.1.create.user is string
+#       - item.1.create.group is defined
+#       - item.1.create.group is string
+#       - item.1.postrotate is defined
+#       - item.1.postrotate is string
+#   loop: "{{ logrotate_config_apps|product(logrotate_config_apps)|list }}"
+#   when:
+#     - logrotate_config_apps is defined
+#     - logrotate_configure_apps == true
+
+- name: preflight | Test if the app configuration is set correctly
+  block:
+    - name: preflight | Verify that the first section is configured correctly
+      ansible.builtin.assert:
+        that:
+          - __app__.app_name is defined
+          - __app__.app_name is string
+      loop: "{{ logrotate_config_apps }}"
+      loop_control:
+        loop_var: __app__
+      when:
+        - logrotate_config_apps is defined
+        - logrotate_config_apps != []
+
+    - name: preflight | Verify that the blocks section is configured correctly
+      ansible.builtin.assert:
+        that:
+          - __block__.pattern is defined
+          - __block__.pattern is string
+          - __block__.rotate_files is defined
+          - __block__.rotate_files is number
+          - __block__.rotate_files > 0 < 30
+          - __block__.frequency is defined
+          - __block__.frequency is string
+          - __block__.missingok is defined
+          - __block__.missingok == __block__.missingok | bool
+          - __block__.compress is defined
+          - __block__.compress == __block__.compress | bool
+          - __block__.notifyempty is defined
+          - __block__.notifyempty == __block__.compress | bool
+          - __block__.sharedscripts is defined
+          - __block__.sharedscripts == __block__.compress | bool
+          - __block__.create is defined
+          - __block__.create.mode is defined
+          - __block__.create.mode is number
+          - __block__.create.user is defined
+          - __block__.create.user is string
+          - __block__.create.group is defined
+          - __block__.create.group is string
+          - __block__.postrotate is defined
+          - __block__.postrotate is string
+      loop: "{{ logrotate_config_apps | subelements('blocks', skip_missing=True) }}"
+      loop_control:
+        loop_var: __block__
+      when:
+        - logrotate_config_apps.blocks is defined
+        - logrotate_config_apps.blocks != []

@@ -1,0 +1,37 @@
+---
+logrotate_configure_system: false
+logrotate_configure_apps: true
+
+logrotate_config_system:
+  blocks: []
+  #   - pattern: /var/log/apache2/*.log
+  #     rotate_files: 8
+  #     frequency: daily
+  #     missingok: true
+  #     compress: true
+  #     notifyempty: true
+  #     sharedscripts: true
+  #     create:
+  #       mode: 0640
+  #       user: www-data
+  #       group: www-data
+  #     postrotate: |
+  #       systemctl reload apache2
+
+logrotate_config_apps:
+  []
+  # - app_name: apache2
+  #   blocks:
+  #     - pattern: /var/log/apache2/*.log
+  #       rotate_files: 8
+  #       frequency: daily
+  #       missingok: true
+  #       compress: true
+  #       notifyempty: true
+  #       sharedscripts: true
+  #       create:
+  #         mode: 0640
+  #         user: www-data
+  #         group: www-data
+  #       postrotate: |
+  #         systemctl reload apache2

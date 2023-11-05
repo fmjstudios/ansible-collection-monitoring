@@ -1,0 +1,18 @@
+---
+- name: configure | Write Promtail configuration file
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ promtail_config_file_path }}"
+    owner: root
+    group: "{{ promtail_system_group }}"
+    mode: 0644
+  notify:
+    - restart promtail
+
+- name: configure | Create Promtail systemd service unit
+  ansible.builtin.template:
+    src: service.j2
+    dest: "/etc/systemd/system/{{ promtail_systemd_service }}.service"
+    mode: 0644
+  notify:
+    - restart promtail
